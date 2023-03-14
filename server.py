@@ -1,40 +1,44 @@
+# echo-server.py
 import socket
- 
-def server(ip, port):
-    # Create a server socket
-    serverSocket = socket.socket()
 
-    # Bind the server to the IP and port
-    serverSocket.bind((ip, port))
-    print("Server socket bound with with ip {} port {}".format(ip, port))
+class Server:
+    def __init__(self):
+        # Initialize socket
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    # Make the server listen for incoming connections
-    serverSocket.listen()
+        # Initialize server info
+        self.ip = ""
+        self.port = 38699
 
-    # Start the server loop
-    while(True):
-        print("Now listening...\n")
-        (clientConnection, clientAddress) = serverSocket.accept()
-        print("Client has connected with IP " + str(clientAddress))
-        data = clientConnection.recv(1024)
+    def start(self):
+        # Bind socket to IP and port
+        self.socket.bind((self.ip, self.port))
 
-        if not data:
-            break
-        elif data == 'killsrv':
-            clientConnection.close()
-        
-        elif data == "hello":
-            msg1  = "Hi Client! Read everything you sent"
-            msg1Bytes = str.encode(msg1) 
-            clientConnection.send(msg1Bytes)          
+        # Listen for incoming connections
+        self.socket.listen()
 
+        while True:
+            print("Waiting for connection...")
+            conn, addr = self.socket.accept()
+            with conn:
+                print(f"Connected by {addr}")
+                while True:
+                    try:
+                        data = conn.recv(1024)
+                    except ConnectionResetError:
+                        print("Client disconnected")
+                        break
+                    
+                    if not data:
+                        continue
 
-
-        else:
-            print(data)
-
-
-    
+                    print(f"Received: {data}")
+                    conn.sendall(b"Message received")
 
 
-server("", 35491)
+                    if (data == "quit"):
+                        break
+
+
+server = Server()
+server.start()

