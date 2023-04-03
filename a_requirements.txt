@@ -1,1 +1,5 @@
 pip install keyboard
+
+
+tips: (för o flytta filer)
+scp (filnamn) bob@ip:~

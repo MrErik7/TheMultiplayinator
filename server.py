@@ -15,17 +15,21 @@ class Server:
         # Bind socket to IP and port
         self.socket.bind((self.ip, self.port))
 
+        # Initialize running flag
+        self.running = True
+
 
     def await_connections(self):
         # Listen for incoming connections
         self.socket.listen()
 
-        while True:
+        while self.running:
             print("Waiting for connection...")
             self.conn, self.addr = self.socket.accept()
-            with self.conn:
-                print(f"Connected by {self.addr}")
-                break
+            print(f"Connected by {self.addr}")
+            break
+        
+            
     
     def listen(self):
         try:
@@ -33,10 +37,14 @@ class Server:
             print(f"Received: {data}")
             self.conn.sendall(b"OK")
             return data
-			
+            
         except ConnectionResetError:
             print("Client disconnected")
             return "disconnected"
+    
+    def shutdown(self):
+        self.running = False
+        self.socket.close()
         
 
 
