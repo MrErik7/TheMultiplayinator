@@ -14,7 +14,6 @@ class MyWindow(QWidget):
 
         # Set variables
         self.window_running = True 
-        self.server_running = False
 
         # Create a layout
         layout = QVBoxLayout()
@@ -40,7 +39,6 @@ class MyWindow(QWidget):
         self.btnConnect = QPushButton('Connect to Server', self)
         self.btnConnect.clicked.connect(self.connect_to_server)
         layout.addWidget(self.btnConnect)
-
  
         # Create a line edit for user input
         self.input_ip = QLineEdit(self)
@@ -89,6 +87,7 @@ class MyWindow(QWidget):
         self.lblResponse.setText(response)
 
 
+
 class ServerThread(QThread):
     response_signal = pyqtSignal(str)
 
@@ -101,25 +100,33 @@ class ServerThread(QThread):
         self.server_running = True
 
         # Await clients to connect
-        self.server.await_connections()
-
-        # When a client has been connected --> start listening for data from the clients
         while self.server_running:
             try:
-                response_bytes = self.server.listen()
+                # Await clients to connect
+                while self.server_running:
+                    connected = False
+                    while not connected:
+                        connected = self.server.await_connections()
 
-                # Check so the response is actually bytes before decoding
-                if response_bytes.__class__ == bytes:
-                    response_str = response_bytes.decode('utf-8')
+                # When a client has been connected --> start listening for data from the clients
+                while self.server_running:
+                    print("running")
+                    response_bytes = self.server.listen()
 
-                self.response_signal.emit("Message recieved: " + response_str)
+                    # Check so the response is actually bytes before decoding
+                    if response_bytes.__class__ == bytes:
+                        response_str = response_bytes.decode('utf-8')
+
+                    self.response_signal.emit("Message recieved: " + response_str)
 
             except ConnectionError:
                 self.response_signal.emit('Lost connection to client, connection cancelled. Server still running...')
-                break  
+                break 
+
     def stop(self):
         self.server_running = False
         self.server.shutdown()
+        self.response_signal.emit('Server closed.')
 
 
 class ClientThread(QThread):
@@ -134,6 +141,7 @@ class ClientThread(QThread):
         # Try and connect to the server
         client = Client()
         client.connect(self.ip, self.port)
+        print("client connected")
 
         if (client.listen() == b"OK"):
             self.connected = True

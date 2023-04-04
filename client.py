@@ -1,12 +1,18 @@
 import socket
+import keyboard
+import time
 
 class Client:
     def __init__(self):
         # Initialize socket
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    def connect(self, ip, port):
-        self.socket.connect((ip, int(port)))
+        # Initialize server info
+        self.ip = "192.168.193.104"
+        self.port = 14576
+
+    def connect(self):
+        self.socket.connect((self.ip, self.port))
         self.socket.sendall(b"Hello server")
         
         self.listen()
@@ -21,5 +27,7 @@ class Client:
             if not data:
                 continue
             else:
-                return data
+                print(f"Received: {data!r}")
+                break
         
+

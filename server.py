@@ -4,32 +4,30 @@ import json
 import time
 
 class Server:
-    def __init__(self, port):
+    def __init__(self):
         # Initialize socket
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         # Initialize server info
         self.ip = ""
-        self.port = port
+        self.port = 14576
 
+
+    def start(self):
         # Bind socket to IP and port
         self.socket.bind((self.ip, self.port))
-
-        # Initialize running flag
-        self.running = True
 
 
     def await_connections(self):
         # Listen for incoming connections
         self.socket.listen()
 
-        while self.running:
+        while True:
             print("Waiting for connection...")
             self.conn, self.addr = self.socket.accept()
-            print(f"Connected by {self.addr}")
-            break
-        
-            
+            with self.conn:
+                print(f"Connected by {self.addr}")
+                break
     
     def listen(self):
         try:
@@ -41,11 +39,3 @@ class Server:
         except ConnectionResetError:
             print("Client disconnected")
             return "disconnected"
-    
-    def shutdown(self):
-        self.running = False
-        self.socket.close()
-        
-
-
-
