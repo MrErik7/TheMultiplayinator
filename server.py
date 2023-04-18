@@ -27,19 +27,27 @@ class Server:
                 print(f"Connected by {self.addr}")
 
                 while True:
-                    try:
-                        data = self.conn.recv(1024)
-                        if not data:
-                            continue
-                        print(f"Received: {data}")
-                        self.conn.sendall(b"OK")
-                    except ConnectionResetError:
-                        print("Client disconnected")
-                        break
+                    if (self.is_open()):
+                        try:
+                            data = self.conn.recv(1024)
+                            if not data:
+                                continue
+                            print(f"Received: {data}")
+                            self.conn.sendall(b"OK")
+                        except ConnectionResetError:
+                            print("Client disconnected")
+                            break
 
     def stop(self):
         self.running = False
         self.socket.close()
+
+    def is_open(self):
+        try:
+            self.conn.getpeername()
+            return True
+        except OSError:
+            return False
 
 
 #server = Server(3333)

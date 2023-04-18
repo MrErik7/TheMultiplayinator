@@ -102,11 +102,12 @@ class ServerThread(QThread):
         while self.server_running:
             self.server.start()
         
+        self.response_signal.emit('Server closed.')
+        
     def stop(self):
         self.server_running = False
         self.server.stop()
         self.response_signal.emit('Server closed.')
-
 
 class ClientThread(QThread):
     response_signal = pyqtSignal(str)
@@ -121,6 +122,8 @@ class ClientThread(QThread):
         client = Client(self.ip, self.port)
         client.connect()
         self.response_signal.emit('Connected to ' + str(self.ip) + " on port " + str(self.port))
+
+    
 
 
 if __name__ == '__main__':
