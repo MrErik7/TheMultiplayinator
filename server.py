@@ -1,24 +1,22 @@
-# echo-server.py
 import socket
-import json
-import time
 
 class Server:
-    def __init__(self):
+    def __init__(self, port):
         # Initialize socket
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         # Initialize server info
         self.ip = ""
-        self.port = 14576
-
+        self.port = port
 
     def start(self):
         # Bind socket to IP and port
         self.socket.bind((self.ip, self.port))
 
+        # And run the server
+        self.run()
 
-    def await_connections(self):
+    def run(self):
         # Listen for incoming connections
         self.socket.listen()
 
@@ -27,15 +25,22 @@ class Server:
             self.conn, self.addr = self.socket.accept()
             with self.conn:
                 print(f"Connected by {self.addr}")
-                break
-    
-    def listen(self):
-        try:
-            data = self.conn.recv(1024)
-            print(f"Received: {data}")
-            self.conn.sendall(b"OK")
-            return data
-            
-        except ConnectionResetError:
-            print("Client disconnected")
-            return "disconnected"
+
+                while True:
+                    try:
+                        data = self.conn.recv(1024)
+                        if not data:
+                            continue
+                        print(f"Received: {data}")
+                        self.conn.sendall(b"OK")
+                    except ConnectionResetError:
+                        print("Client disconnected")
+                        break
+
+    def stop(self):
+        self.running = False
+        self.socket.close()
+
+
+#server = Server(3333)
+#server.start()

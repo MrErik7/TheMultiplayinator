@@ -99,33 +99,12 @@ class ServerThread(QThread):
         self.server = Server(int(self.port))
         self.server_running = True
 
-        # Await clients to connect
         while self.server_running:
-            try:
-                # Await clients to connect
-                while self.server_running:
-                    connected = False
-                    while not connected:
-                        connected = self.server.await_connections()
-
-                # When a client has been connected --> start listening for data from the clients
-                while self.server_running:
-                    print("running")
-                    response_bytes = self.server.listen()
-
-                    # Check so the response is actually bytes before decoding
-                    if response_bytes.__class__ == bytes:
-                        response_str = response_bytes.decode('utf-8')
-
-                    self.response_signal.emit("Message recieved: " + response_str)
-
-            except ConnectionError:
-                self.response_signal.emit('Lost connection to client, connection cancelled. Server still running...')
-                break 
-
+            self.server.start()
+        
     def stop(self):
         self.server_running = False
-        self.server.shutdown()
+        self.server.stop()
         self.response_signal.emit('Server closed.')
 
 
@@ -139,25 +118,9 @@ class ClientThread(QThread):
 
     def run(self):
         # Try and connect to the server
-        client = Client()
-        client.connect(self.ip, self.port)
-        print("client connected")
-
-        if (client.listen() == b"OK"):
-            self.connected = True
-            print("recieved ok")
-
-        while self.connected:
-            self.response_signal.emit('Connected to ' + str(self.p) + " on port " + str(self.port))
-            
-            try:
-                response_str = client.listen().decode('utf-8')
-                self.response_signal.emit(response_str)
-
-            except ConnectionResetError:
-                self.response_signal.emit('Lost connection to server, connection cancelled.')
-                break          
-
+        client = Client(self.ip, self.port)
+        client.connect()
+        self.response_signal.emit('Connected to ' + str(self.ip) + " on port " + str(self.port))
 
 
 if __name__ == '__main__':
