@@ -1,4 +1,5 @@
 import sys
+import keyboard
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QLineEdit
 from PyQt5.QtCore import QThread, pyqtSignal
 from client import *
@@ -18,12 +19,14 @@ class MyWindow(QWidget):
         # Create a layout
         layout = QVBoxLayout()
 
-        # Create a label
+        # Create the labels
         self.lblWelcome = QLabel('Welcome to the PI Multiplayer Machine.', self)
         self.lblResponse = QLabel('-Response-', self)
+        self.lblClients = QLabel('Connected clients: ', self)
 
         layout.addWidget(self.lblWelcome)
         layout.addWidget(self.lblResponse)
+        layout.addWidget(self.lblClients)
 
         # Create the host server button
         self.btnServer = QPushButton('Host Server', self)
@@ -61,7 +64,7 @@ class MyWindow(QWidget):
         # Setup the server
         self.server_thread = ServerThread(port)
         self.server_thread.response_signal.connect(self.update_response_label)
-
+        
         # Start the server thread
         self.server_thread.start()
         self.lblResponse.setText("Waiting for connections...")
@@ -87,6 +90,9 @@ class MyWindow(QWidget):
         self.lblResponse.setText(response)
 
 
+    def update_clients_label(self, clients):
+        self.lblClients.setText('Connected clients: ' + str(clients))
+
 
 class ServerThread(QThread):
     response_signal = pyqtSignal(str)
@@ -98,16 +104,30 @@ class ServerThread(QThread):
     def run(self):
         self.server = Server(int(self.port))
         self.server_running = True
+        self.server.set_callback(self.print_client_keys)
+
+        self.response_signal.emit('Server started.')
 
         while self.server_running:
             self.server.start()
-        
+
         self.response_signal.emit('Server closed.')
         
     def stop(self):
         self.server_running = False
         self.server.stop()
         self.response_signal.emit('Server closed.')
+
+    def print_client_keys(self, key):
+        print(key)
+
+        try:
+            keyboard.press(str(key))
+            keyboard.release(str(key))
+        except ValueError:
+            print("Key is not valid, server wont press.")
+
+        
 
 class ClientThread(QThread):
     response_signal = pyqtSignal(str)
