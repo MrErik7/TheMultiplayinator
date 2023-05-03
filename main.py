@@ -11,7 +11,7 @@ class MyWindow(QWidget):
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle('PI Multiplayer Machine')
+        self.setWindowTitle('The Multiplayinator')
 
         # Set variables
         self.window_running = True 
@@ -20,7 +20,7 @@ class MyWindow(QWidget):
         layout = QVBoxLayout()
 
         # Create the labels
-        self.lblWelcome = QLabel('Welcome to the PI Multiplayer Machine.', self)
+        self.lblWelcome = QLabel('Welcome to the official multiplayinator, start a server or connect to an existing. ', self)
         self.lblResponse = QLabel('-Response-', self)
         self.lblClients = QLabel('Connected clients: ', self)
 
@@ -64,7 +64,8 @@ class MyWindow(QWidget):
         # Setup the server
         self.server_thread = ServerThread(port)
         self.server_thread.response_signal.connect(self.update_response_label)
-        
+        self.server_thread.label_client_signal.connect(self.update_clients_label)
+
         # Start the server thread
         self.server_thread.start()
         self.lblResponse.setText("Waiting for connections...")
@@ -89,22 +90,23 @@ class MyWindow(QWidget):
     def update_response_label(self, response):
         self.lblResponse.setText(response)
 
-
-    def update_clients_label(self, clients):
-        self.lblClients.setText('Connected clients: ' + str(clients))
+    def update_clients_label(self, client_list):
+        self.lblClients.setText('Connected clients: \n' + client_list)
 
 
 class ServerThread(QThread):
     response_signal = pyqtSignal(str)
+    label_client_signal = pyqtSignal(str)
 
     def __init__(self, port):
         super().__init__()
         self.port = port
+        self.connected_clients = []
 
     def run(self):
         self.server = Server(int(self.port))
         self.server_running = True
-        self.server.set_callback(self.print_client_keys)
+        self.server.set_callback(self.handle_callback)
 
         self.response_signal.emit('Server started.')
 
@@ -118,14 +120,24 @@ class ServerThread(QThread):
         self.server.stop()
         self.response_signal.emit('Server closed.')
 
-    def print_client_keys(self, key):
-        print(key)
+    def handle_callback(self, value, type):
 
-        try:
-            keyboard.press(str(key))
-            keyboard.release(str(key))
-        except ValueError:
-            print("Key is not valid, server wont press.")
+        if (type == "key"):
+            print(value)
+
+            try:
+                keyboard.press(str(value))
+                keyboard.release(str(value))
+            except ValueError:
+                print("Key is not valid, server wont press.")
+
+        elif (type == "ip-add"):
+            self.connected_clients.append(value)
+            self.label_client_signal.emit(str(self.connected_clients)[1:-1])
+
+        elif (type == "ip-remove"):
+            self.connected_clients.remove(value)
+            self.label_client_signal.emit(str(self.connected_clients)[1:-1])
 
         
 

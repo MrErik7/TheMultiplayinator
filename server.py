@@ -20,6 +20,7 @@ class Server:
         # Initialize callback function
         self.callback = None
 
+    # This method sends back data, such as ip of clients and key pressed, to main script, as a callback function
     def set_callback(self, callback):
         self.callback = callback
 
@@ -46,6 +47,9 @@ class Server:
             # Verify client connection
             if len(self.clients) < self.max_clients:
                 self.clients.append(conn)
+                if self.callback:
+                    self.callback(addr[0], "ip-add")
+
                 thread = threading.Thread(target=self.listen_to_client, args=(conn, addr))
                 thread.start()
             else:
@@ -74,7 +78,7 @@ class Server:
                     print(f"Client {addr} pressed key {key}")
                     conn.sendall(b"KEY RECIEVED")
                     if self.callback:
-                        self.callback(key)
+                        self.callback(key, "key")
 
 
                 else:
@@ -88,6 +92,10 @@ class Server:
         print(f"Client {addr} disconnected")
         with self.lock:
             self.clients.remove(conn)
+
+            if self.callback:
+                self.callback(addr[0], "ip-remove")
+
 
     def stop(self):
         # Close the socket
