@@ -1,6 +1,5 @@
 import socket
 import threading
-import time
 
 class Client:
     def __init__(self, ip, port):

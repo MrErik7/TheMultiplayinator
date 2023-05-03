@@ -123,8 +123,6 @@ class ServerThread(QThread):
     def handle_callback(self, value, type):
 
         if (type == "key"):
-            print(value)
-
             try:
                 keyboard.press(str(value))
                 keyboard.release(str(value))
