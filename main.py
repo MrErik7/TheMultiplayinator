@@ -2,6 +2,7 @@ import sys
 import keyboard
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QLineEdit
 from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5 import QtGui
 from client import *
 from server import *
 
@@ -12,9 +13,11 @@ class MyWindow(QWidget):
 
     def initUI(self):
         self.setWindowTitle('The Multiplayinator')
+        self.setWindowIcon(QtGui.QIcon("img/logo.png"))
 
         # Set variables
         self.window_running = True 
+        self.key_input_activated = False
 
         # Create a layout
         layout = QVBoxLayout()
@@ -22,10 +25,12 @@ class MyWindow(QWidget):
         # Create the labels
         self.lblWelcome = QLabel('Welcome to the official multiplayinator, start a server or connect to an existing. ', self)
         self.lblResponse = QLabel('-Response-', self)
+        self.lblKey = QLabel('Key input activated: ' + str(self.key_input_activated), self)
         self.lblClients = QLabel('Connected clients: ', self)
 
         layout.addWidget(self.lblWelcome)
         layout.addWidget(self.lblResponse)
+        layout.addWidget(self.lblKey)
         layout.addWidget(self.lblClients)
 
         # Create the host server button
@@ -43,9 +48,17 @@ class MyWindow(QWidget):
         self.btnConnect.clicked.connect(self.connect_to_server)
         layout.addWidget(self.btnConnect)
  
+        # Create the toggle key activation 
+        self.btnToggleKeys = QPushButton('Toggle key input', self)
+        self.btnToggleKeys.clicked.connect(self.toggle_key_input)
+        layout.addWidget(self.btnToggleKeys)
+
         # Create a line edit for user input
         self.input_ip = QLineEdit(self)
+        self.input_ip.setPlaceholderText("Enter IP adress...")
+
         self.input_port = QLineEdit(self)
+        self.input_port.setPlaceholderText("Enter port...")
 
         layout.addWidget(self.input_ip)
         layout.addWidget(self.input_port)
@@ -62,7 +75,7 @@ class MyWindow(QWidget):
         port = self.input_port.text()
 
         # Setup the server
-        self.server_thread = ServerThread(port)
+        self.server_thread = ServerThread(port, self.key_input_activated)
         self.server_thread.response_signal.connect(self.update_response_label)
         self.server_thread.label_client_signal.connect(self.update_clients_label)
 
@@ -84,8 +97,27 @@ class MyWindow(QWidget):
 
 
     def shutdown_server(self):
-        self.server_thread.stop()
+        try:
+            self.server_thread.stop()
+        
+        except AttributeError:
+            self.lblResponse.setText("Server must be started to be able to shutdown.") 
 
+    
+    def toggle_key_input(self):
+        # Change the condition of the key input activated variable
+        self.key_input_activated = not self.key_input_activated
+
+        # Then update the visual part
+        self.lblKey.setText('Key input activated: ' + str(self.key_input_activated))
+
+        # Then try to, if the server is running, to change the condition in the server thread
+        try:
+            self.server_thread.toggle_key_input(self.key_input_activated)
+
+        except AttributeError:
+            print("Server must be running in order to change the server thread. ")
+            
 
     def update_response_label(self, response):
         self.lblResponse.setText(response)
@@ -98,10 +130,11 @@ class ServerThread(QThread):
     response_signal = pyqtSignal(str)
     label_client_signal = pyqtSignal(str)
 
-    def __init__(self, port):
+    def __init__(self, port, key_condition):
         super().__init__()
         self.port = port
         self.connected_clients = []
+        self.key_input = key_condition
 
     def run(self):
         self.server = Server(int(self.port))
@@ -123,11 +156,15 @@ class ServerThread(QThread):
     def handle_callback(self, value, type):
 
         if (type == "key"):
-            try:
-                keyboard.press(str(value))
-                keyboard.release(str(value))
-            except ValueError:
-                print("Key is not valid, server wont press.")
+
+            if (self.key_input):
+                try:
+                    keyboard.press(str(value))
+                    keyboard.release(str(value))
+                except ValueError:
+                    print("Key is not valid, server wont press.")
+            else:
+                print("Key input is not activated. ")
 
         elif (type == "ip-add"):
             self.connected_clients.append(value)
@@ -137,7 +174,8 @@ class ServerThread(QThread):
             self.connected_clients.remove(value)
             self.label_client_signal.emit(str(self.connected_clients)[1:-1])
 
-        
+    def toggle_key_input(self, condition):
+        self.key_input = condition
 
 class ClientThread(QThread):
     response_signal = pyqtSignal(str)
@@ -150,7 +188,7 @@ class ClientThread(QThread):
     def run(self):
         # Try and connect to the server
         client = Client(self.ip, self.port)
-        client.connect()
+        client.connect() 
         self.response_signal.emit('Connected to ' + str(self.ip) + " on port " + str(self.port))
 
     

