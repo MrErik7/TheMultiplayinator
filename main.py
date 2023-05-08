@@ -1,7 +1,7 @@
 import sys
 import keyboard
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QLineEdit
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QThread, pyqtSignal, Qt
 from PyQt5 import QtGui
 from client import *
 from server import *
@@ -33,6 +33,14 @@ class MyWindow(QWidget):
         layout.addWidget(self.lblKey)
         layout.addWidget(self.lblClients)
 
+        # Create the label dividers
+        self.lblServerDiv = QLabel('Server:')
+        self.lblClientDiv = QLabel('Client:')
+
+        # Center the server and client label horizontally
+        self.lblServerDiv.setAlignment(Qt.AlignHCenter)
+        self.lblClientDiv.setAlignment(Qt.AlignHCenter)        
+
         # Create the host server button
         self.btnServer = QPushButton('Host Server', self)
         self.btnServer.clicked.connect(self.host_server)
@@ -43,19 +51,20 @@ class MyWindow(QWidget):
         self.btnShutdownServer.clicked.connect(self.shutdown_server)
         layout.addWidget(self.btnShutdownServer)
 
-        # Create the connect to server button
-        self.btnConnect = QPushButton('Connect to Server', self)
-        self.btnConnect.clicked.connect(self.connect_to_server)
-        layout.addWidget(self.btnConnect)
- 
         # Create the toggle key activation 
         self.btnToggleKeys = QPushButton('Toggle key input', self)
         self.btnToggleKeys.clicked.connect(self.toggle_key_input)
         layout.addWidget(self.btnToggleKeys)
 
+        # Create the connect to server button
+        self.btnConnect = QPushButton('Connect to Server', self)
+        self.btnConnect.clicked.connect(self.connect_to_server)
+        layout.addWidget(self.btnConnect)
+
+ 
         # Create a line edit for user input
         self.input_ip = QLineEdit(self)
-        self.input_ip.setPlaceholderText("Enter IP adress...")
+        self.input_ip.setPlaceholderText("Enter IP adress... (leave blank for server hosting)")
 
         self.input_port = QLineEdit(self)
         self.input_port.setPlaceholderText("Enter port...")
@@ -162,7 +171,7 @@ class ServerThread(QThread):
                     keyboard.press(str(value))
                     keyboard.release(str(value))
                 except ValueError:
-                    print("Key is not valid, server wont press.")
+                    print("Key is not valid, server wont press. ")
             else:
                 print("Key input is not activated. ")
 

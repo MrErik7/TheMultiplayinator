@@ -7,7 +7,7 @@ class Client:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.ip = ip
         self.port = port
-        self.printable_keys = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', ' ', ',', '.', '/', ';', '\'', '[', ']', '\\', '-', '=', '`']
+        self.printable_keys = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', ' ', ',', '.', '/', ';', '\'', '[', ']', '\\', '-', '=', '`', 'space']
 
     def connect(self):
         self.socket.connect((self.ip, int(self.port)))
@@ -23,21 +23,9 @@ class Client:
         while True:
             try:                
                 # Check for key press and send it to server
-                for key in self.printable_keys:
-                    if keyboard.is_pressed(key):
-                        self.socket.sendall(("key:" + key).encode('utf-8'))
-
-
-                # Wait for the response from the server
-                # Well see if ill use this
-                """
-               # data = self.socket.recv(1024)
-
-              #  if not data:
-               #     continue
-               # else:
-               #     print(f"Message received from server: {data.decode('utf-8')}")
-               """
+                event = keyboard.read_event()
+                if event.event_type == "down" and event.name in self.printable_keys:
+                    self.socket.sendall(("key:" + event.name).encode('utf-8'))
 
             except ConnectionResetError:
                 print("Server disconnected")
