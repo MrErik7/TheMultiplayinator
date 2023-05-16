@@ -34,4 +34,4 @@ class Client:
 
     def on_key_release(self, event):
         if event.event_type == "up" and event.name in self.printable_keys:
-            self.socket.sendall(("key_release:" + event.name).encode('utf-8'))
+            self.socket.sendall(("key_released:" + event.name).encode('utf-8'))

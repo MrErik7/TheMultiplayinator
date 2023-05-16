@@ -80,6 +80,13 @@ class Server:
                     if self.callback:
                         self.callback(key, "key")
 
+                elif data.startswith(b"key_released:"):
+                    key = data.split(b":")[1].decode().strip()
+                    print(f"Client {addr} released key {key}")
+                    conn.sendall(b"KEY RECIEVED")
+                    if self.callback:
+                        self.callback(key, "key")
+
 
                 else:
                     print(f"Received: {data} from {addr}")
