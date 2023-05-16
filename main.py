@@ -166,12 +166,23 @@ class ServerThread(QThread):
 
         if (type == "key"):
 
+            # First check if key input is activated, or else it wont press
             if (self.key_input):
                 try:
                     keyboard.press(str(value))
-                    keyboard.release(str(value))
                 except ValueError:
                     print("Key is not valid, server wont press. ")
+            else:
+                print("Key input is not activated. ")
+
+        elif (type == "key_release"):
+                
+            # First check if key input is activated, or else it wont release
+            if (self.key_input):
+                try:
+                    keyboard.release(str(value))
+                except ValueError:
+                    print("Key is not pressed down. ")
             else:
                 print("Key input is not activated. ")
 
