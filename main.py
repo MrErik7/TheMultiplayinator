@@ -176,7 +176,7 @@ class ServerThread(QThread):
                 print("Key input is not activated. ")
 
         elif (type == "key_released"):
-                
+            
             # First check if key input is activated, or else it wont release
             if (self.key_input):
                 try:

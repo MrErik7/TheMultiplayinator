@@ -20,18 +20,17 @@ class Client:
         self.socket.sendall(b"Im alive")
         print("Message sent to server: Im alive")
 
-        try:                
-            keyboard.on_press(self.on_key_press)
-            keyboard.on_release(self.on_key_release)
+        while True:
+            try:                
+                # Check for key press and send it to server
+                event = keyboard.read_event()
+                if event.event_type == "down" and event.name in self.printable_keys:
+                    self.socket.sendall(("key:" + event.name).encode('utf-8'))
+                
+                elif event.event_type == "up" and event.name in self.printable_keys:
+                    self.socket.sendall(("key_released:" + event.name).encode('utf-8'))
 
-        except ConnectionResetError:
-            print("Server disconnected")
-            
 
-    def on_key_press(self, event):
-        if event.event_type == "down" and event.name in self.printable_keys:
-            self.socket.sendall(("key:" + event.name).encode('utf-8'))
-
-    def on_key_release(self, event):
-        if event.event_type == "up" and event.name in self.printable_keys:
-            self.socket.sendall(("key_released:" + event.name).encode('utf-8'))
+            except ConnectionResetError:
+                print("Server disconnected")
+                break
