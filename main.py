@@ -163,28 +163,28 @@ class ServerThread(QThread):
         self.response_signal.emit('Server closed.')
 
     def handle_callback(self, value, type):
+        # Release all previously pressed keys
 
         if (type == "key"):
-
             # First check if key input is activated, or else it wont press
-            if (self.key_input):
+            if self.key_input:
                 try:
                     keyboard.press(str(value))
                 except ValueError:
-                    print("Key is not valid, server wont press. ")
+                    print("Key is not valid, server won't press.")
             else:
-                print("Key input is not activated. ")
+                print("Key input is not activated.")
 
-        elif (type == "key_released"):
-            
-            # First check if key input is activated, or else it wont release
-            if (self.key_input):
+
+        elif type == "key_released":
+            if self.key_input:
                 try:
                     keyboard.release(str(value))
                 except ValueError:
-                    print("Key is not pressed down. ")
+                    print("Key is not pressed down.")
             else:
-                print("Key input is not activated. ")
+                print("Key input is not activated.")
+
 
         elif (type == "ip-add"):
             self.connected_clients.append(value)

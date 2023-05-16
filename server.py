@@ -85,7 +85,7 @@ class Server:
                     print(f"Client {addr} released key {key}")
                     conn.sendall(b"KEY RECIEVED")
                     if self.callback:
-                        self.callback(key, "key")
+                        self.callback(key, "key_released")
 
 
                 else:
