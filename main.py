@@ -167,7 +167,13 @@ class ServerThread(QThread):
         self.key_input = key_condition
 
     def run(self):
-        self.server = Server(int(self.port))
+        try:
+            self.server = Server(int(self.port))
+        except ValueError:
+            self.response_signal.emit('Port needs to be filled in.')
+            return
+
+
         self.server_running = True
         self.server.set_callback(self.handle_callback)
 
