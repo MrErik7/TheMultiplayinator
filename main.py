@@ -1,17 +1,25 @@
-import sys
-import keyboard
-import socket # The socket module is simply used to retrieve the users ip, not any server or client handling
+# Libraries for building the GUI
+import sys  
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QGridLayout, QLineEdit
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
 from PyQt5 import QtGui
+
+# Own-made libraries
 from client import *
 from server import *
 
+import keyboard # The keyboard module is used to press down the keys recieved from the client (note that this requires *root access on linux)
+import socket # The socket module is simply used to retrieve the users ip, not any server or client handling
+
+# The main class of this program, a class part of the GUI module (pyqt5)
 class MyWindow(QWidget):
+
+    # Initializement of the module 
     def __init__(self):
         super().__init__()
         self.initUI()
 
+    # Initializement of the GUI 
     def initUI(self):
         self.setWindowTitle('The Multiplayinator')
         self.setWindowIcon(QtGui.QIcon("img/logo.png"))
@@ -29,6 +37,7 @@ class MyWindow(QWidget):
         self.lblKey = QLabel('Key input activated: ' + str(self.key_input_activated), self)
         self.lblClients = QLabel('Connected clients: ', self)
 
+        # Display the welcome and response label
         self.lblResponse.setAlignment(Qt.AlignHCenter)
 
         layout.addWidget(self.lblWelcome, 0, 0, 1, 2)
@@ -42,6 +51,7 @@ class MyWindow(QWidget):
         self.lblServerDiv.setAlignment(Qt.AlignHCenter)
         self.lblClientDiv.setAlignment(Qt.AlignHCenter)        
 
+        # Add the label dividers to the widget
         layout.addWidget(self.lblServerDiv, 3, 0)
         layout.addWidget(self.lblClientDiv, 3, 1)
 
@@ -92,6 +102,7 @@ class MyWindow(QWidget):
         # Set the size of the window to 400x300 pixels
         self.setGeometry(100, 100, 400, 300)
 
+    # The main method for hosting a server, linked to the "host server" button
     def host_server(self):
         # Get the text from the input box
         port = self.input_port.text()
@@ -105,6 +116,7 @@ class MyWindow(QWidget):
         self.server_thread.start()
         self.lblResponse.setText("Waiting for connections...")
      
+    # The main method for connecting to a server, linked to the "connect to server" button
     def connect_to_server(self):
         # Get the text from the input box
         ip = self.input_ip.text()
@@ -117,7 +129,7 @@ class MyWindow(QWidget):
         # Start the client thread
         self.client_thread.start()
 
-
+    # The main method for shutting down a server, linked to the "shutdown server" button
     def shutdown_server(self):
         try:
             self.server_thread.stop()
@@ -125,10 +137,12 @@ class MyWindow(QWidget):
         except AttributeError:
             self.lblResponse.setText("Server must be started to be able to shutdown.") 
 
+    # The method for leaving a server
     def leave_server(self):
         self.client_thread.leave_server()
 
     
+    # The method for toggle the key input button, linked to the "toggle key input" button
     def toggle_key_input(self):
         # Change the condition of the key input activated variable
         self.key_input_activated = not self.key_input_activated
@@ -144,9 +158,11 @@ class MyWindow(QWidget):
             print("Server must be running in order to change the server thread. ")
             
 
+    # The method to update the response label, this is called from inside the server and client threads
     def update_response_label(self, response):
         self.lblResponse.setText(response)
 
+    # The method to update the clients label, this is called from inside the server thread
     def update_clients_label(self, client_list):
         self.lblClients.setText('Connected clients: \n' + client_list)
 
@@ -155,48 +171,58 @@ class MyWindow(QWidget):
 # pros: Since its a thread, the rest of the program can be runned without it freezing 
 # cons: Accessing the label in the main class is a bit tricky and is done by emiting signals, unneccesary code if i skipped the class
 # However, the pros outweigh the cons in this case.
-# Same is with the client thread. 
+# Same is with the client thread.
+# The main thread that starts when a user starts a server.   
 class ServerThread(QThread):
+    # Initialize the label signals, simply put it: pyqtsignals are developed by pyt5 to make it possible to update labels amongst classes
     response_signal = pyqtSignal(str)
     label_client_signal = pyqtSignal(str)
 
+    # Initialize the server thread
     def __init__(self, port, key_condition):
         super().__init__()
         self.port = port
         self.connected_clients = []
         self.key_input = key_condition
 
+    # The main method of the server thread, initialzing the Server from the server script
     def run(self):
         try:
             self.server = Server(int(self.port))
         except ValueError:
+
+            # If the user doesnt fill in the port, it will raise an ValueError
             self.response_signal.emit('Port needs to be filled in.')
             return
 
-
+        # Set the variables and the callback function
         self.server_running = True
         self.server.set_callback(self.handle_callback)
 
+        # And upate the response label
         self.response_signal.emit('Server started.')
 
+        # While the variable, server_running is true, keep the server going
         while self.server_running:
             self.server.start()
 
+        # Otherwise if the server is stopped, displayed this with the response label
         self.response_signal.emit('Server closed.')
-        
+
+     # The function to stop the server, called when the owner of the server decides to press the shutdown server button   
     def stop(self):
         self.server_running = False
         self.server.stop()
         self.response_signal.emit('Server closed.')
         self.label_client_signal.emit('')
 
+    # This function handles the callback, the signals sent from the server script, (keys and if clients join or leave)
     def handle_callback(self, value, type):
-        # Release all previously pressed keys
-
         if (type == "key"):
             # First check if key input is activated, or else it wont press
             if self.key_input:
                 try:
+                    # And then press the key provided
                     keyboard.press(str(value))
                 except ValueError:
                     print("Key is not valid, server won't press.")
@@ -205,8 +231,10 @@ class ServerThread(QThread):
 
 
         elif type == "key_released":
+            # First check if key input is activated, or else it wont press
             if self.key_input:
                 try:
+                    # And then release the key provided
                     keyboard.release(str(value))
                 except ValueError:
                     print("Key is not pressed down.")
@@ -222,18 +250,23 @@ class ServerThread(QThread):
             self.connected_clients.remove(value)
             self.label_client_signal.emit(str(self.connected_clients)[1:-1])
 
+    # And if the key input is updated, while the server is running, the condition inside the serverthread must be changed aswell
     def toggle_key_input(self, condition):
         self.key_input = condition
 
+# The main thread that starts when a user joins a server, becomes a client.  
 class ClientThread(QThread):
+    # Initialize the label signals
     response_signal = pyqtSignal(str)
 
+    # Initialize the client thread, the ip and port are of intrest. Also self.client is to check wether the client is connected or not. 
     def __init__(self, ip, port):
         super().__init__()
         self.ip = ip
         self.port = port
         self.client = None
 
+    # Once the run function is called the client will try to connect to the server
     def run(self):
         # Try and connect to the server
         self.client = Client(self.ip, self.port)
@@ -241,15 +274,18 @@ class ClientThread(QThread):
         self.client.connect()
         self.response_signal.emit('Connected to ' + str(self.ip) + " on port " + str(self.port))
 
+    # A function to handle the callback from the client script, in this case being the server status, if its connected or not
     def handle_callback(self, value):
         if value == "closed":
             self.response_signal.emit('Disconnected, server was closed.')
 
+    # A function called when the user wants to leave a server. 
     def leave_server(self):
         if self.client:
             self.client.leave_server()
             self.response_signal.emit('Disconnected.')
 
+# And then the code to initialize the main GUI class, once the program is started
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = MyWindow()
