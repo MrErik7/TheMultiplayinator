@@ -1,3 +1,4 @@
 # TheMultiplayinator
-- Python socket, with clients sending key inputs to the server, and the server pressing them down
+- A program built upon the python module socket.
+- Idea: Client send key inputs to server then the server presses them down.
 - Required libraries are: keyboard and pyqt5
