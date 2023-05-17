@@ -9,6 +9,13 @@ class Client:
         self.port = port
         self.printable_keys = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', ' ', ',', '.', '/', ';', '\'', '[', ']', '\\', '-', '=', '`', 'space']
 
+        # Initialize callback function
+        self.callback = None
+
+    # This method sends back data, the state of the server, to the main script
+    def set_callback(self, callback):
+        self.callback = callback
+
     def connect(self):
         self.socket.connect((self.ip, int(self.port)))
         self.socket.sendall(b"Hello server")
@@ -32,5 +39,13 @@ class Client:
 
 
             except ConnectionResetError:
-                print("Server disconnected")
+                print("Server was closed")
+                
+                # Send back the status of the server to the main script
+                if self.callback:
+                    self.callback("closed")
+
                 break
+
+    def leave_server(self):
+        self.socket.close()

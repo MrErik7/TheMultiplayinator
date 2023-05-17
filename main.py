@@ -1,6 +1,7 @@
 import sys
 import keyboard
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QLineEdit
+import socket # The socket module is simply used to retrieve the users ip, not any server or client handling
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QGridLayout, QLineEdit
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
 from PyQt5 import QtGui
 from client import *
@@ -20,18 +21,18 @@ class MyWindow(QWidget):
         self.key_input_activated = False
 
         # Create a layout
-        layout = QVBoxLayout()
+        layout = QGridLayout()
 
         # Create the labels
-        self.lblWelcome = QLabel('Welcome to the official multiplayinator, start a server or connect to an existing. ', self)
+        self.lblWelcome = QLabel('Welcome to the official multiplayinator, start a server or connect to an existing. \n Your IP: ' + socket.gethostbyname(socket.gethostname()), self)
         self.lblResponse = QLabel('-Response-', self)
         self.lblKey = QLabel('Key input activated: ' + str(self.key_input_activated), self)
         self.lblClients = QLabel('Connected clients: ', self)
 
-        layout.addWidget(self.lblWelcome)
-        layout.addWidget(self.lblResponse)
-        layout.addWidget(self.lblKey)
-        layout.addWidget(self.lblClients)
+        self.lblResponse.setAlignment(Qt.AlignHCenter)
+
+        layout.addWidget(self.lblWelcome, 0, 0, 1, 2)
+        layout.addWidget(self.lblResponse, 1, 0, 1, 2)
 
         # Create the label dividers
         self.lblServerDiv = QLabel('Server:')
@@ -41,43 +42,55 @@ class MyWindow(QWidget):
         self.lblServerDiv.setAlignment(Qt.AlignHCenter)
         self.lblClientDiv.setAlignment(Qt.AlignHCenter)        
 
+        layout.addWidget(self.lblServerDiv, 3, 0)
+        layout.addWidget(self.lblClientDiv, 3, 1)
+
+        # Add the key input and connected clients labels
+        layout.addWidget(self.lblKey, 4, 0)
+        layout.addWidget(self.lblClients, 5, 0)
+
         # Create the host server button
         self.btnServer = QPushButton('Host Server', self)
         self.btnServer.clicked.connect(self.host_server)
-        layout.addWidget(self.btnServer)
+        layout.addWidget(self.btnServer, 6, 0)
 
         # Create the shutdown server button
         self.btnShutdownServer = QPushButton('Shutdown Server', self)
         self.btnShutdownServer.clicked.connect(self.shutdown_server)
-        layout.addWidget(self.btnShutdownServer)
+        layout.addWidget(self.btnShutdownServer, 7, 0)
 
         # Create the toggle key activation 
         self.btnToggleKeys = QPushButton('Toggle key input', self)
         self.btnToggleKeys.clicked.connect(self.toggle_key_input)
-        layout.addWidget(self.btnToggleKeys)
+        layout.addWidget(self.btnToggleKeys, 8, 0)
 
         # Create the connect to server button
         self.btnConnect = QPushButton('Connect to Server', self)
         self.btnConnect.clicked.connect(self.connect_to_server)
-        layout.addWidget(self.btnConnect)
+        layout.addWidget(self.btnConnect, 6, 1)
 
- 
-        # Create a line edit for user input
+        # Create the leave server button
+        self.btnLeaveServer = QPushButton('Leave Server', self)
+        self.btnLeaveServer.clicked.connect(self.leave_server)
+        layout.addWidget(self.btnLeaveServer, 7, 1)
+
+        # Create a line edit for the IP input
         self.input_ip = QLineEdit(self)
-        self.input_ip.setPlaceholderText("Enter IP adress... (leave blank for server hosting)")
+        self.input_ip.setPlaceholderText("Enter IP adress...")
 
+        # Create a line edit for the port input
         self.input_port = QLineEdit(self)
         self.input_port.setPlaceholderText("Enter port...")
 
-        layout.addWidget(self.input_ip)
-        layout.addWidget(self.input_port)
+        # Add the widgets
+        layout.addWidget(self.input_port, 9, 0)
+        layout.addWidget(self.input_ip, 9, 1)
 
         # Set the layout for the window
         self.setLayout(layout)
 
         # Set the size of the window to 400x300 pixels
         self.setGeometry(100, 100, 400, 300)
-
 
     def host_server(self):
         # Get the text from the input box
@@ -112,6 +125,9 @@ class MyWindow(QWidget):
         except AttributeError:
             self.lblResponse.setText("Server must be started to be able to shutdown.") 
 
+    def leave_server(self):
+        self.client_thread.leave_server()
+
     
     def toggle_key_input(self):
         # Change the condition of the key input activated variable
@@ -134,7 +150,12 @@ class MyWindow(QWidget):
     def update_clients_label(self, client_list):
         self.lblClients.setText('Connected clients: \n' + client_list)
 
-
+# Note from the developer:
+# Using a class here has its pros and cons, 
+# pros: Since its a thread, the rest of the program can be runned without it freezing 
+# cons: Accessing the label in the main class is a bit tricky and is done by emiting signals, unneccesary code if i skipped the class
+# However, the pros outweigh the cons in this case.
+# Same is with the client thread. 
 class ServerThread(QThread):
     response_signal = pyqtSignal(str)
     label_client_signal = pyqtSignal(str)
@@ -161,6 +182,7 @@ class ServerThread(QThread):
         self.server_running = False
         self.server.stop()
         self.response_signal.emit('Server closed.')
+        self.label_client_signal.emit('')
 
     def handle_callback(self, value, type):
         # Release all previously pressed keys
@@ -204,15 +226,23 @@ class ClientThread(QThread):
         super().__init__()
         self.ip = ip
         self.port = port
+        self.client = None
 
     def run(self):
         # Try and connect to the server
-        client = Client(self.ip, self.port)
-        client.connect() 
+        self.client = Client(self.ip, self.port)
+        self.client.set_callback(self.handle_callback)
+        self.client.connect()
         self.response_signal.emit('Connected to ' + str(self.ip) + " on port " + str(self.port))
 
-    
+    def handle_callback(self, value):
+        if value == "closed":
+            self.response_signal.emit('Disconnected, server was closed.')
 
+    def leave_server(self):
+        if self.client:
+            self.client.leave_server()
+            self.response_signal.emit('Disconnected.')
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
